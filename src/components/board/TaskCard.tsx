@@ -24,7 +24,7 @@ export const TaskCardView = memo(function TaskCardView({ task, overlay }: CardPr
   return (
     <div
       className={clsx(
-        'group rounded-lg border bg-white p-3 text-left select-none',
+        'group rounded-lg border bg-surface p-3 text-left select-none',
         overlay
           ? 'rotate-[1.5deg] cursor-grabbing border-zinc-300 shadow-lifted'
           : 'cursor-grab border-zinc-200/80 shadow-card transition-[box-shadow,border-color] duration-150 hover:border-zinc-300 hover:shadow-card-hover',

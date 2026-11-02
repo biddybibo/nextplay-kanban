@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 import { AlertCircle, Plus } from 'lucide-react'
 import { isOverdue } from '../lib/filters'
 import type { Task } from '../lib/types'
+import { ThemeMenu } from './ThemeMenu'
 
 type Props = {
   tasks: Task[] | undefined
@@ -25,10 +26,12 @@ export function Header({ tasks, overdueOnly, onToggleOverdue, onNewTask }: Props
         <Stats tasks={tasks} overdueOnly={overdueOnly} onToggleOverdue={onToggleOverdue} />
       )}
 
+      <div className="ml-auto flex items-center gap-1.5">
+      <ThemeMenu />
       <button
         type="button"
         onClick={onNewTask}
-        className="ml-auto flex h-8 items-center gap-1.5 rounded-md bg-indigo-600 pr-2 pl-2.5 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:outline-none"
+        className="flex h-8 items-center gap-1.5 rounded-md bg-indigo-600 pr-2 pl-2.5 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:outline-none"
       >
         <Plus className="size-4" />
         New task
@@ -36,6 +39,7 @@ export function Header({ tasks, overdueOnly, onToggleOverdue, onNewTask }: Props
           C
         </kbd>
       </button>
+      </div>
     </header>
   )
 }
@@ -49,7 +53,7 @@ function Stats({ tasks, overdueOnly, onToggleOverdue }: Omit<Props, 'onNewTask' 
 
   return (
     <div className="order-last flex w-full items-center gap-1 overflow-x-auto text-xs sm:order-none sm:w-auto">
-      <div className="flex h-8 shrink-0 items-center gap-2 rounded-md border border-zinc-200 bg-white pr-2.5 pl-2 shadow-card">
+      <div className="flex h-8 shrink-0 items-center gap-2 rounded-md border border-zinc-200 bg-surface pr-2.5 pl-2 shadow-card">
         <ProgressRing pct={pct} />
         <span className="text-zinc-700">
           <span className="font-semibold text-zinc-900 tabular-nums">{done}</span>

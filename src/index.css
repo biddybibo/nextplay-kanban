@@ -3,6 +3,9 @@
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
+  /* Raised surfaces: cards, popovers, panels. Swapped in dark mode. */
+  --color-surface: #ffffff;
+
   /* Status accents, shared by column headers, icons and the create dialog. */
   --color-status-todo: #94a3b8;
   --color-status-progress: #f59e0b;
@@ -31,6 +34,52 @@
   }
 }
 
+/*
+ * Dark theme. Components are written against the zinc scale and a few light
+ * tints, so dark mode redefines those tokens instead of adding dark: variants
+ * everywhere. The scale is inverted (zinc-900 text becomes light, zinc-50
+ * backgrounds become dark) and tints become deep, low-chroma fills.
+ * data-theme is set before first paint by the script in index.html.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-surface: oklch(22.5% 0.006 286);
+
+  --color-zinc-50: oklch(16.5% 0.005 286);
+  --color-zinc-100: oklch(25.5% 0.006 286);
+  --color-zinc-200: oklch(30% 0.007 286);
+  --color-zinc-300: oklch(38% 0.01 286);
+  --color-zinc-400: oklch(56% 0.014 286);
+  --color-zinc-500: oklch(66% 0.014 286);
+  --color-zinc-600: oklch(75% 0.012 286);
+  --color-zinc-700: oklch(84% 0.008 286);
+  --color-zinc-800: oklch(91% 0.005 286);
+  --color-zinc-900: oklch(96% 0.003 286);
+  --color-zinc-950: oklch(98.5% 0 0);
+
+  --color-indigo-50: oklch(28% 0.06 277);
+  --color-indigo-100: oklch(32% 0.08 277);
+  --color-indigo-200: oklch(40% 0.11 277);
+  --color-indigo-300: oklch(52% 0.15 277);
+  --color-indigo-700: oklch(82% 0.09 277);
+  --color-indigo-900: oklch(90% 0.05 277);
+
+  --color-red-50: oklch(27% 0.06 22);
+  --color-red-100: oklch(31% 0.08 22);
+  --color-red-200: oklch(40% 0.11 22);
+  --color-red-300: oklch(50% 0.15 22);
+  --color-red-700: oklch(80% 0.12 22);
+
+  --color-amber-50: oklch(28% 0.05 75);
+  --color-amber-200: oklch(42% 0.08 75);
+  --color-amber-700: oklch(84% 0.13 80);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.45);
+  --shadow-lifted: 0 18px 40px -8px rgb(0 0 0 / 0.6), 0 6px 12px -4px rgb(0 0 0 / 0.35);
+}
+
 html,
 body,
 #root {
@@ -45,5 +94,14 @@ body {
 /* Thin, unobtrusive scrollbars for the board and columns. */
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgb(212 212 216) transparent;
+  scrollbar-color: var(--color-zinc-300) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

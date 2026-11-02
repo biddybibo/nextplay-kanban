@@ -23,9 +23,9 @@ export function CreateTaskDialog({ open, onOpenChange, tasks }: Props) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 animate-fade-in bg-zinc-950/25 backdrop-blur-[2px]" />
+        <Dialog.Overlay className="fixed inset-0 z-40 animate-fade-in bg-black/25 backdrop-blur-[2px]" />
         <Dialog.Content
-          className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 animate-dialog-in rounded-xl bg-white shadow-lifted ring-1 ring-zinc-950/5 focus:outline-none"
+          className="fixed top-1/2 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 animate-dialog-in rounded-xl bg-surface shadow-lifted ring-1 ring-zinc-950/5 focus:outline-none"
           aria-describedby={undefined}
         >
           {/* Remounted on every open so the form always starts blank. */}
@@ -136,7 +136,7 @@ function CreateTaskForm({ tasks, onDone }: { tasks: Task[]; onDone: () => void }
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 text-[13px] text-zinc-700 transition-colors hover:border-zinc-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 focus:outline-none"
+              className="h-8 w-full rounded-md border border-zinc-200 bg-surface px-2 text-[13px] text-zinc-700 transition-colors hover:border-zinc-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 focus:outline-none"
             />
           </Field>
         </div>
@@ -222,7 +222,7 @@ function Choice({ selected, onClick, children }: { selected: boolean; onClick: (
         'flex h-8 items-center justify-center gap-1.5 rounded-md border px-2 text-[12px] font-medium whitespace-nowrap transition-colors',
         selected
           ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50',
+          : 'border-zinc-200 bg-surface text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50',
       )}
     >
       {children}
@@ -238,7 +238,7 @@ const PickerButton = forwardRef<
     <button
       ref={ref}
       type="button"
-      className="flex h-8 w-full items-center gap-1.5 overflow-hidden rounded-md border border-zinc-200 bg-white px-2 text-left text-[13px] transition-colors hover:border-zinc-300 focus-visible:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-500/15 focus-visible:outline-none data-[state=open]:border-indigo-400"
+      className="flex h-8 w-full items-center gap-1.5 overflow-hidden rounded-md border border-zinc-200 bg-surface px-2 text-left text-[13px] transition-colors hover:border-zinc-300 focus-visible:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-500/15 focus-visible:outline-none data-[state=open]:border-indigo-400"
       {...props}
     >
       {empty ? <span className="text-zinc-400">{placeholder}</span> : children}

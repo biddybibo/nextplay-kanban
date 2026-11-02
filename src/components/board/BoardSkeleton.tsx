@@ -14,7 +14,7 @@ export function BoardSkeleton() {
           </div>
           <div className="flex flex-col gap-2">
             {Array.from({ length: CARD_COUNTS[i] }, (_, j) => (
-              <div key={j} className="rounded-lg border border-zinc-200/80 bg-white p-3 shadow-card">
+              <div key={j} className="rounded-lg border border-zinc-200/80 bg-surface p-3 shadow-card">
                 <div className="h-3 w-4/5 animate-pulse rounded bg-zinc-100" />
                 <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-zinc-100" />
                 <div className="mt-3 h-4 w-16 animate-pulse rounded bg-zinc-100" />

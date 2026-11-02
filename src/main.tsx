@@ -1,8 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Toaster } from 'sonner'
 import { AuthProvider } from './auth/AuthProvider'
+import { ErrorBoundary, ThemedToaster } from './components/AppShell'
 import App from './App.tsx'
 import './index.css'
 
@@ -14,12 +14,13 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-      <Toaster position="bottom-right" toastOptions={{ className: 'font-sans text-[13px]' }} />
-
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+        <ThemedToaster />
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

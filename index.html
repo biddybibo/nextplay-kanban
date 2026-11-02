@@ -5,7 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fafafa" />
+    <meta name="description" content="A fast, keyboard-friendly Kanban board. Plan, drag and track work across To Do, In Progress, In Review and Done." />
+    <meta property="og:title" content="Taskboard" />
+    <meta property="og:description" content="A fast, keyboard-friendly Kanban board backed by Supabase." />
     <title>Taskboard</title>
+    <script>
+      // Apply the saved (or system) theme before first paint to avoid a flash.
+      ;(function () {
+        var pref = 'system'
+        try { pref = localStorage.getItem('theme') || 'system' } catch (e) {}
+        var dark = pref === 'dark' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      })()
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

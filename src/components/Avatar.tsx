@@ -49,12 +49,12 @@ export function AvatarStack({
   return (
     <span className="flex items-center -space-x-1">
       {shown.map((m) => (
-        <Avatar key={m.id} member={m} size={size} className="ring-2 ring-white" />
+        <Avatar key={m.id} member={m} size={size} className="ring-2 ring-surface" />
       ))}
       {extra > 0 && (
         <span
           className={clsx(
-            'inline-grid place-items-center rounded-full bg-zinc-100 font-semibold text-zinc-600 ring-2 ring-white',
+            'inline-grid place-items-center rounded-full bg-zinc-100 font-semibold text-zinc-600 ring-2 ring-surface',
             SIZES[size],
           )}
           title={members.slice(max).map((m) => m.name).join(', ')}

@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { useUser } from '../auth/authContext'
 import type { Tables } from '../lib/database.types'
 import { supabase } from '../lib/supabase'
+import { writeScope } from './useTasks'
 
 export type Comment = Tables<'comments'>
 export type Activity = Tables<'task_activity'>
@@ -47,6 +48,8 @@ export function useAddComment(taskId: string) {
   const key = commentsKey(taskId)
 
   const mutation = useMutation({
+    // Queued behind pending task edits so the timeline matches the order the user acted in.
+    scope: writeScope,
     mutationFn: async (comment: Comment) => {
       const { id, body, task_id } = comment
       const { data, error } = await supabase.from('comments').insert({ id, body, task_id }).select().single()
@@ -84,6 +87,7 @@ export function useDeleteComment(taskId: string) {
   const key = commentsKey(taskId)
 
   return useMutation({
+    scope: writeScope,
     mutationFn: async (comment: Comment) => {
       const { error } = await supabase.from('comments').delete().eq('id', comment.id)
       if (error) throw error

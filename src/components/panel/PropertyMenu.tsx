@@ -32,7 +32,7 @@ export function PropertyMenu<T extends string>({
         <DropdownMenu.Content
           align="start"
           sideOffset={4}
-          className="z-[60] min-w-44 animate-fade-in rounded-lg bg-white p-1 shadow-lifted ring-1 ring-zinc-950/5"
+          className="z-[60] min-w-44 animate-fade-in rounded-lg bg-surface p-1 shadow-lifted ring-1 ring-zinc-950/5"
         >
           {options.map((o) => (
             <DropdownMenu.Item

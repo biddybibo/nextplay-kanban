@@ -23,7 +23,7 @@ export function TaskPanel({ task, onClose }: Props) {
   return (
     <Dialog.Root open={!!task} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 animate-fade-in bg-zinc-950/10" />
+        <Dialog.Overlay className="fixed inset-0 z-40 animate-fade-in bg-black/10" />
         <Dialog.Content
           aria-describedby={undefined}
           onEscapeKeyDown={(e) => {
@@ -34,7 +34,7 @@ export function TaskPanel({ task, onClose }: Props) {
               el.blur()
             }
           }}
-          className="fixed inset-y-0 right-0 z-50 flex w-full animate-panel-in flex-col bg-white shadow-lifted ring-1 ring-zinc-950/5 focus:outline-none sm:inset-y-2 sm:right-2 sm:w-[min(540px,calc(100vw-1rem))] sm:rounded-xl"
+          className="fixed inset-y-0 right-0 z-50 flex w-full animate-panel-in flex-col bg-surface shadow-lifted ring-1 ring-zinc-950/5 focus:outline-none sm:inset-y-2 sm:right-2 sm:w-[min(540px,calc(100vw-1rem))] sm:rounded-xl"
         >
           {/* Keyed so drafts and confirm state reset when switching tasks. */}
           {task && <PanelBody key={task.id} task={task} onClose={onClose} />}
@@ -161,7 +161,7 @@ function PanelBody({ task, onClose }: { task: Task; onClose: () => void }) {
         </section>
       </div>
 
-      <footer className="shrink-0 border-t border-zinc-100 bg-white p-3 sm:rounded-b-xl">
+      <footer className="shrink-0 border-t border-zinc-100 bg-surface p-3 sm:rounded-b-xl">
         <CommentComposer
           taskId={task.id}
           onPosted={() =>
@@ -251,7 +251,7 @@ function EditableText({
       onKeyDown={onKeyDown}
       rows={1}
       aria-label={label}
-      className={`-mx-2 block w-[calc(100%+1rem)] resize-none rounded-md px-2 py-1 transition-colors [field-sizing:content] placeholder:text-zinc-400 hover:bg-zinc-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none ${className}`}
+      className={`-mx-2 block w-[calc(100%+1rem)] resize-none rounded-md px-2 py-1 transition-colors [field-sizing:content] placeholder:text-zinc-400 hover:bg-zinc-50 focus:bg-surface focus:ring-2 focus:ring-indigo-500/20 focus:outline-none ${className}`}
       {...props}
     />
   )

@@ -54,7 +54,7 @@ export function ManageList<T extends Row>({
         <Popover.Content
           align="end"
           sideOffset={6}
-          className="z-[60] w-72 animate-fade-in rounded-lg bg-white shadow-lifted ring-1 ring-zinc-950/5"
+          className="z-[60] w-72 animate-fade-in rounded-lg bg-surface shadow-lifted ring-1 ring-zinc-950/5"
         >
           <div className="px-3.5 pt-3 pb-2">
             <p className="text-[13px] font-semibold text-zinc-900">{title}</p>

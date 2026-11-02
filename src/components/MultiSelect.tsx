@@ -72,7 +72,7 @@ export function MultiSelect({
         <Popover.Content
           align={align}
           sideOffset={6}
-          className="z-[60] w-60 animate-fade-in overflow-hidden rounded-lg bg-white shadow-lifted ring-1 ring-zinc-950/5"
+          className="z-[60] w-60 animate-fade-in overflow-hidden rounded-lg bg-surface shadow-lifted ring-1 ring-zinc-950/5"
           onOpenAutoFocus={(e) => {
             // Focus the search box rather than the first focusable row.
             e.preventDefault()
@@ -117,7 +117,7 @@ export function MultiSelect({
                   <span
                     className={clsx(
                       'grid size-3.5 shrink-0 place-items-center rounded border transition-colors',
-                      isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-zinc-300 bg-white',
+                      isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-zinc-300 bg-surface',
                     )}
                   >
                     {isSelected && <Check className="size-2.5" strokeWidth={3} />}

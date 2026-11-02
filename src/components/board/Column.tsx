@@ -63,7 +63,7 @@ export function Column({ status, tasks, dragging, onQuickAdd, onOpenTask, filter
           <div
             className={clsx(
               'flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed px-4 py-8 text-center transition-colors',
-              dragging ? 'border-indigo-300 bg-white/60 text-indigo-500' : 'border-zinc-300/80 text-zinc-400',
+              dragging ? 'border-indigo-300 bg-surface/60 text-indigo-500' : 'border-zinc-300/80 text-zinc-400',
             )}
           >
             <StatusIcon status={status} className="mb-2 size-5 opacity-60" />
@@ -116,7 +116,7 @@ function QuickAdd({ onSubmit, onClose }: { onSubmit: (title: string) => void; on
   }
 
   return (
-    <div className="rounded-lg border border-indigo-300 bg-white p-2 shadow-card ring-2 ring-indigo-500/15">
+    <div className="rounded-lg border border-indigo-300 bg-surface p-2 shadow-card ring-2 ring-indigo-500/15">
       <textarea
         ref={ref}
         value={title}

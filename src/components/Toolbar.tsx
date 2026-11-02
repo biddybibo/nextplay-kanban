@@ -60,7 +60,7 @@ export function Toolbar({ filters, onChange, members, labels, tasks, visibleCoun
           onKeyDown={(e) => e.key === 'Escape' && (set({ query: '' }), e.currentTarget.blur())}
           placeholder="Search tasks"
           aria-label="Search tasks by title"
-          className="h-8 w-full rounded-md border border-zinc-200 bg-white pr-8 pl-8 text-[13px] text-zinc-800 shadow-card transition-colors placeholder:text-zinc-400 hover:border-zinc-300 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-500/15 focus:outline-none"
+          className="h-8 w-full rounded-md border border-zinc-200 bg-surface pr-8 pl-8 text-[13px] text-zinc-800 shadow-card transition-colors placeholder:text-zinc-400 hover:border-zinc-300 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-500/15 focus:outline-none"
         />
         {filters.query ? (
           <button
@@ -176,7 +176,7 @@ const ToolbarButton = forwardRef<HTMLButtonElement, ComponentProps<'button'> & {
           'flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[13px] font-medium shadow-card transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:outline-none data-[state=open]:border-zinc-300 data-[state=open]:bg-zinc-50',
           active
             ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/70'
-            : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50',
+            : 'border-zinc-200 bg-surface text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50',
           className,
         )}
         {...props}

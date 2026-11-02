@@ -8,6 +8,7 @@ import { Header } from './components/Header'
 import { LookupContext, buildLookups } from './components/lookups'
 import { TaskPanel } from './components/panel/TaskPanel'
 import { Toolbar } from './components/Toolbar'
+import { useRealtimeSync } from './hooks/useRealtimeSync'
 import { useTaskParam } from './hooks/useTaskParam'
 import { useTasks } from './hooks/useTasks'
 import { useLabels, useMembers } from './hooks/useWorkspaceLists'
@@ -40,6 +41,7 @@ export default function App() {
 }
 
 function Workspace() {
+  useRealtimeSync()
   const tasksQuery = useTasks()
   const membersQuery = useMembers()
   const labelsQuery = useLabels()
@@ -49,6 +51,12 @@ function Workspace() {
   const [openTaskId, setOpenTaskId] = useTaskParam()
   // Undefined while loading, or if the task was deleted / the URL is stale.
   const openTask = openTaskId ? tasks?.find((t) => t.id === openTaskId) : undefined
+  const staleTaskParam = !!openTaskId && !!tasks && !openTask
+
+  // Drop a ?task= that points at a deleted (or someone else's) task.
+  useEffect(() => {
+    if (staleTaskParam) setOpenTaskId(null)
+  }, [staleTaskParam, setOpenTaskId])
 
   const lookups = useMemo(
     () => buildLookups(membersQuery.data ?? [], labelsQuery.data ?? []),
@@ -97,7 +105,7 @@ function Workspace() {
             <Sparkles className="size-4 shrink-0 text-indigo-500" />
             <p>
               Your board is empty. Add your first task with <span className="font-medium">New task</span>, or press{' '}
-              <kbd className="rounded border border-indigo-200 bg-white px-1 font-sans text-[11px] font-medium">C</kbd>.
+              <kbd className="rounded border border-indigo-200 bg-surface px-1 font-sans text-[11px] font-medium">C</kbd>.
             </p>
           </div>
         ) : (
@@ -154,7 +162,7 @@ function FullScreenMessage({
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-      <div className="mb-4 grid size-10 place-items-center rounded-full bg-white shadow-card ring-1 ring-zinc-200">{icon}</div>
+      <div className="mb-4 grid size-10 place-items-center rounded-full bg-surface shadow-card ring-1 ring-zinc-200">{icon}</div>
       <p className="text-sm font-semibold text-zinc-900">{title}</p>
       {children && <p className="mt-1 max-w-sm text-[13px] text-zinc-500">{children}</p>}
       {action && <div className="mt-5">{action}</div>}
@@ -168,7 +176,7 @@ function RetryButton({ onClick, loading }: { onClick: () => void; loading?: bool
       type="button"
       onClick={onClick}
       disabled={loading}
-      className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3 text-[13px] font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 disabled:opacity-60"
+      className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200 bg-surface px-3 text-[13px] font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 disabled:opacity-60"
     >
       {loading && <Loader2 className="size-3.5 animate-spin" />}
       Try again
