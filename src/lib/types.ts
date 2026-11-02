@@ -1,0 +1,33 @@
+import type { Tables } from './database.types'
+
+export const STATUSES = ['todo', 'in_progress', 'in_review', 'done'] as const
+export type TaskStatus = (typeof STATUSES)[number]
+
+export const PRIORITIES = ['low', 'normal', 'high'] as const
+export type TaskPriority = (typeof PRIORITIES)[number]
+
+export const STATUS_LABELS: Record<TaskStatus, string> = {
+  todo: 'To Do',
+  in_progress: 'In Progress',
+  in_review: 'In Review',
+  done: 'Done',
+}
+
+// The DB enforces these values with CHECK constraints; narrow the generated
+// `string` columns so the rest of the app gets exhaustive unions.
+export type Task = Omit<Tables<'tasks'>, 'status' | 'priority'> & {
+  status: TaskStatus
+  priority: TaskPriority
+}
+
+export type NewTask = {
+  title: string
+  description?: string | null
+  status?: TaskStatus
+  priority?: TaskPriority
+  due_date?: string | null
+}
+
+export type TaskPatch = Partial<
+  Pick<Task, 'title' | 'description' | 'status' | 'priority' | 'due_date' | 'position'>
+>
