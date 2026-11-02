@@ -6,20 +6,36 @@ import { positionBetween } from '../lib/position'
 import { supabase } from '../lib/supabase'
 import type { NewTask, Task, TaskPatch } from '../lib/types'
 
-const tasksKey = (userId: string) => ['tasks', userId] as const
+export const tasksKey = (userId: string) => ['tasks', userId] as const
 
 // Task writes run one at a time, in order. Otherwise an edit made while a
 // card's insert is still in flight could reach the DB before the row exists.
-const writeScope = { id: 'task-writes' }
+export const writeScope = { id: 'task-writes' }
+
+// Assignees and labels come back embedded, so the board needs one request.
+const TASK_SELECT = '*, task_assignees(member_id), task_labels(label_id)'
+
+type TaskRow = Omit<Task, 'assignee_ids' | 'label_ids'> & {
+  task_assignees: { member_id: string }[]
+  task_labels: { label_id: string }[]
+}
+
+function normalize({ task_assignees, task_labels, ...task }: TaskRow): Task {
+  return {
+    ...task,
+    assignee_ids: task_assignees.map((a) => a.member_id),
+    label_ids: task_labels.map((l) => l.label_id),
+  }
+}
 
 async function fetchTasks(): Promise<Task[]> {
   // RLS already limits rows to the signed-in user; no user_id filter needed.
   const { data, error } = await supabase
     .from('tasks')
-    .select('*')
+    .select(TASK_SELECT)
     .order('position', { ascending: true })
   if (error) throw error
-  return data as Task[]
+  return (data as unknown as TaskRow[]).map(normalize)
 }
 
 export function useTasks() {
@@ -35,14 +51,26 @@ export function useCreateTask() {
   return useMutation({
     scope: writeScope,
     mutationFn: async (input: Task) => {
-      const { id, title, description, status, priority, due_date, position } = input
-      const { data, error } = await supabase
+      const { id, title, description, status, priority, due_date, position, assignee_ids, label_ids } = input
+      const { error } = await supabase
         .from('tasks')
         .insert({ id, title, description, status, priority, due_date, position })
-        .select()
-        .single()
       if (error) throw error
-      return data as Task
+
+      const links = await Promise.all([
+        assignee_ids.length
+          ? supabase.from('task_assignees').insert(assignee_ids.map((member_id) => ({ task_id: id, member_id })))
+          : null,
+        label_ids.length
+          ? supabase.from('task_labels').insert(label_ids.map((label_id) => ({ task_id: id, label_id })))
+          : null,
+      ])
+      const linkError = links.find((r) => r?.error)?.error
+      if (linkError) throw linkError
+
+      const { data, error: readError } = await supabase.from('tasks').select(TASK_SELECT).eq('id', id).single()
+      if (readError) throw readError
+      return normalize(data as unknown as TaskRow)
     },
     onMutate: async (task) => {
       await qc.cancelQueries({ queryKey: key })
@@ -52,7 +80,9 @@ export function useCreateTask() {
       qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === task.id ? task : t)))
     },
     onError: (err, task) => {
+      // The insert may have half-succeeded (task saved, links failed); refetch to show the truth.
       qc.setQueryData<Task[]>(key, (old = []) => old.filter((t) => t.id !== task.id))
+      void qc.invalidateQueries({ queryKey: key })
       toast.error("Couldn't create task", { description: err.message })
     },
   })
@@ -76,6 +106,8 @@ export function useNewTaskFactory() {
         priority: input.priority ?? 'normal',
         due_date: input.due_date ?? null,
         position: input.position,
+        assignee_ids: input.assignee_ids ?? [],
+        label_ids: input.label_ids ?? [],
         user_id: user.id,
         created_at: now,
         updated_at: now,
@@ -102,9 +134,9 @@ export function useUpdateTask() {
   const mutation = useMutation({
     scope: writeScope,
     mutationFn: async ({ id, patch }: { id: string; patch: TaskPatch; previous: Task }) => {
-      const { data, error } = await supabase.from('tasks').update(patch).eq('id', id).select().single()
+      const { data, error } = await supabase.from('tasks').update(patch).eq('id', id).select(TASK_SELECT).single()
       if (error) throw error
-      return data as Task
+      return normalize(data as unknown as TaskRow)
     },
     onSuccess: (task) => {
       qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === task.id ? task : t)))
@@ -134,6 +166,54 @@ export function useUpdateTask() {
   )
 
   return { ...mutation, update }
+}
+
+const RELATIONS = {
+  assignee: { table: 'task_assignees', column: 'member_id', field: 'assignee_ids' },
+  label: { table: 'task_labels', column: 'label_id', field: 'label_ids' },
+} as const
+
+/** Adds or removes one assignee / label on a task, optimistically. */
+export function useToggleRelation(kind: keyof typeof RELATIONS) {
+  const user = useUser()
+  const qc = useQueryClient()
+  const key = tasksKey(user.id)
+  const { table, column, field } = RELATIONS[kind]
+
+  const setLinked = (taskId: string, id: string, linked: boolean) =>
+    qc.setQueryData<Task[]>(key, (old = []) =>
+      old.map((t) =>
+        t.id !== taskId
+          ? t
+          : { ...t, [field]: linked ? [...new Set([...t[field], id])] : t[field].filter((x) => x !== id) },
+      ),
+    )
+
+  const mutation = useMutation({
+    scope: writeScope,
+    mutationFn: async ({ taskId, id, add }: { taskId: string; id: string; add: boolean }) => {
+      const { error } = add
+        ? await supabase.from(table).insert({ task_id: taskId, [column]: id } as never)
+        : await supabase.from(table).delete().match({ task_id: taskId, [column]: id })
+      if (error) throw error
+    },
+    onSuccess: (_data, { taskId }) => {
+      void qc.invalidateQueries({ queryKey: ['activity', taskId] })
+    },
+    onError: (err, { taskId, id, add }) => {
+      setLinked(taskId, id, !add)
+      toast.error(`Couldn't update ${kind === 'assignee' ? 'assignees' : 'labels'}`, { description: err.message })
+    },
+  })
+
+  const { mutate } = mutation
+  const toggle = (task: Task, id: string) => {
+    const add = !task[field].includes(id)
+    setLinked(task.id, id, add)
+    mutate({ taskId: task.id, id, add })
+  }
+
+  return { ...mutation, toggle }
 }
 
 export function useDeleteTask() {

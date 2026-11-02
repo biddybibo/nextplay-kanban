@@ -1,10 +1,17 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { forwardRef, useState, type ComponentProps, type FormEvent, type ReactNode } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { clsx } from 'clsx'
-import { X } from 'lucide-react'
+import { ChevronDown, X } from 'lucide-react'
 import { endOfColumnPosition, useCreateTask, useNewTaskFactory } from '../hooks/useTasks'
 import { PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS, type Task, type TaskPriority, type TaskStatus } from '../lib/types'
+import { useCreateLabel, useCreateMember } from '../hooks/useWorkspaceLists'
+import { Avatar, AvatarStack } from './Avatar'
 import { PriorityIcon, StatusIcon } from './icons'
+import { ColorDot, LabelChip } from './LabelChip'
+import { useLookups } from './lookups'
+import { MultiSelect } from './MultiSelect'
+
+const toggleIn = (ids: string[], id: string) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id])
 
 type Props = {
   open: boolean
@@ -38,6 +45,11 @@ function CreateTaskForm({ tasks, onDone }: { tasks: Task[]; onDone: () => void }
   const [priority, setPriority] = useState<TaskPriority>('normal')
   const [dueDate, setDueDate] = useState('')
   const [touched, setTouched] = useState(false)
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([])
+  const [labelIds, setLabelIds] = useState<string[]>([])
+  const { members, labels, memberById, labelById } = useLookups()
+  const createMember = useCreateMember()
+  const createLabel = useCreateLabel()
 
   const titleError = touched && !title.trim() ? 'Give the task a title' : null
 
@@ -54,6 +66,8 @@ function CreateTaskForm({ tasks, onDone }: { tasks: Task[]; onDone: () => void }
         status,
         priority,
         due_date: dueDate || null,
+        assignee_ids: assigneeIds,
+        label_ids: labelIds,
         position: endOfColumnPosition(tasks, status),
       }),
     )
@@ -126,6 +140,52 @@ function CreateTaskForm({ tasks, onDone }: { tasks: Task[]; onDone: () => void }
             />
           </Field>
         </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Assignees">
+            <MultiSelect
+              trigger={
+                <PickerButton placeholder="Unassigned" empty={assigneeIds.length === 0}>
+                  <AvatarStack members={assigneeIds.flatMap((id) => memberById.get(id) ?? [])} max={5} />
+                  {assigneeIds.length === 1 && (
+                    <span className="truncate text-zinc-700">{memberById.get(assigneeIds[0])?.name}</span>
+                  )}
+                </PickerButton>
+              }
+              items={members.map((m) => ({ id: m.id, name: m.name, icon: <Avatar member={m} size="xs" /> }))}
+              selected={assigneeIds}
+              onToggle={(id) => setAssigneeIds((ids) => toggleIn(ids, id))}
+              onCreate={(name) => {
+                const m = createMember.create(name)
+                setAssigneeIds((ids) => [...ids, m.id])
+              }}
+              createNoun="teammate"
+              placeholder="Assign to…"
+              emptyText="Type a name to add a teammate"
+            />
+          </Field>
+          <Field label="Labels">
+            <MultiSelect
+              trigger={
+                <PickerButton placeholder="No labels" empty={labelIds.length === 0}>
+                  {labelIds.flatMap((id) => labelById.get(id) ?? []).map((l) => (
+                    <LabelChip key={l.id} label={l} />
+                  ))}
+                </PickerButton>
+              }
+              items={labels.map((l) => ({ id: l.id, name: l.name, icon: <ColorDot color={l.color} /> }))}
+              selected={labelIds}
+              onToggle={(id) => setLabelIds((ids) => toggleIn(ids, id))}
+              onCreate={(name) => {
+                const l = createLabel.create(name)
+                setLabelIds((ids) => [...ids, l.id])
+              }}
+              createNoun="label"
+              placeholder="Add label…"
+              emptyText="Type to create a label"
+            />
+          </Field>
+        </div>
       </div>
 
       <div className="flex items-center justify-end gap-2 border-t border-zinc-100 bg-zinc-50/60 px-5 py-3">
@@ -169,3 +229,20 @@ function Choice({ selected, onClick, children }: { selected: boolean; onClick: (
     </button>
   )
 }
+
+const PickerButton = forwardRef<
+  HTMLButtonElement,
+  ComponentProps<'button'> & { placeholder: string; empty: boolean }
+>(function PickerButton({ placeholder, empty, children, ...props }, ref) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      className="flex h-8 w-full items-center gap-1.5 overflow-hidden rounded-md border border-zinc-200 bg-white px-2 text-left text-[13px] transition-colors hover:border-zinc-300 focus-visible:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-500/15 focus-visible:outline-none data-[state=open]:border-indigo-400"
+      {...props}
+    >
+      {empty ? <span className="text-zinc-400">{placeholder}</span> : children}
+      <ChevronDown className="ml-auto size-3.5 shrink-0 text-zinc-400" />
+    </button>
+  )
+})

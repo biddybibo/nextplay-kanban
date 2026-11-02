@@ -3,7 +3,10 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { clsx } from 'clsx'
 import { PRIORITY_LABELS, type Task } from '../../lib/types'
+import { AvatarStack } from '../Avatar'
 import { DueDateChip } from '../DueDateChip'
+import { LabelChip } from '../LabelChip'
+import { useLookups } from '../lookups'
 import { PriorityIcon } from '../icons'
 
 type CardProps = {
@@ -14,6 +17,9 @@ type CardProps = {
 
 export const TaskCardView = memo(function TaskCardView({ task, overlay }: CardProps) {
   const done = task.status === 'done'
+  const { memberById, labelById } = useLookups()
+  const assignees = task.assignee_ids.flatMap((id) => memberById.get(id) ?? [])
+  const labels = task.label_ids.flatMap((id) => labelById.get(id) ?? [])
 
   return (
     <div
@@ -38,21 +44,27 @@ export const TaskCardView = memo(function TaskCardView({ task, overlay }: CardPr
       )}
 
       {/* Normal priority is the default, so it isn't shown; cards stay quiet unless something is notable. */}
-      {(task.priority !== 'normal' || task.due_date) && (
-        <div className="mt-2.5 flex items-center gap-1.5">
-          {task.priority !== 'normal' && (
-            <span
-              className={clsx(
-                'inline-flex h-5 items-center gap-1 rounded-md text-[11px] font-medium',
-                task.priority === 'high' ? 'text-orange-600' : 'text-zinc-500',
-              )}
-              title={`${PRIORITY_LABELS[task.priority]} priority`}
-            >
-              <PriorityIcon priority={task.priority} />
-              {PRIORITY_LABELS[task.priority]}
-            </span>
-          )}
-          {task.due_date && <DueDateChip dueDate={task.due_date} done={done} />}
+      {(task.priority !== 'normal' || task.due_date || labels.length > 0 || assignees.length > 0) && (
+        <div className="mt-2.5 flex items-end gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            {task.priority !== 'normal' && (
+              <span
+                className={clsx(
+                  'inline-flex h-5 items-center gap-1 rounded-md text-[11px] font-medium',
+                  task.priority === 'high' ? 'text-orange-600' : 'text-zinc-500',
+                )}
+                title={`${PRIORITY_LABELS[task.priority]} priority`}
+              >
+                <PriorityIcon priority={task.priority} />
+                {PRIORITY_LABELS[task.priority]}
+              </span>
+            )}
+            {task.due_date && <DueDateChip dueDate={task.due_date} done={done} />}
+            {labels.map((l) => (
+              <LabelChip key={l.id} label={l} />
+            ))}
+          </div>
+          {assignees.length > 0 && <AvatarStack members={assignees} />}
         </div>
       )}
     </div>

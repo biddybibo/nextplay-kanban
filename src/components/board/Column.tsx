@@ -21,9 +21,10 @@ type ColumnProps = {
   dragging: boolean
   onQuickAdd: (status: TaskStatus, title: string) => void
   onOpenTask: (id: string) => void
+  filtering: boolean
 }
 
-export function Column({ status, tasks, dragging, onQuickAdd, onOpenTask }: ColumnProps) {
+export function Column({ status, tasks, dragging, onQuickAdd, onOpenTask, filtering }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status, data: { type: 'column', status } })
   const [adding, setAdding] = useState(false)
 
@@ -66,7 +67,7 @@ export function Column({ status, tasks, dragging, onQuickAdd, onOpenTask }: Colu
             )}
           >
             <StatusIcon status={status} className="mb-2 size-5 opacity-60" />
-            <p className="text-xs font-medium">{dragging ? 'Drop here' : EMPTY_COPY[status]}</p>
+            <p className="text-xs font-medium">{dragging ? 'Drop here' : filtering ? 'No matching tasks' : EMPTY_COPY[status]}</p>
           </div>
         )}
 

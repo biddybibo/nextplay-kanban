@@ -1,11 +1,16 @@
-import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { forwardRef, useRef, useState, type ComponentProps, type KeyboardEvent, type ReactNode } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { format, parseISO } from 'date-fns'
-import { CalendarDays, Trash2, X } from 'lucide-react'
-import { useDeleteTask, useUpdateTask } from '../../hooks/useTasks'
+import { CalendarDays, Plus, Trash2, X } from 'lucide-react'
+import { useDeleteTask, useToggleRelation, useUpdateTask } from '../../hooks/useTasks'
+import { useCreateLabel, useCreateMember } from '../../hooks/useWorkspaceLists'
 import { dueUrgency } from '../../lib/due'
 import { PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS, type Task } from '../../lib/types'
+import { Avatar } from '../Avatar'
 import { PriorityIcon, StatusIcon } from '../icons'
+import { ColorDot, LabelChip } from '../LabelChip'
+import { useLookups } from '../lookups'
+import { MultiSelect } from '../MultiSelect'
 import { CommentComposer, Feed } from './Feed'
 import { PropertyMenu } from './PropertyMenu'
 
@@ -140,6 +145,12 @@ function PanelBody({ task, onClose }: { task: Task; onClose: () => void }) {
                 done={task.status === 'done'}
                 onChange={(due_date) => update(task.id, { due_date })}
               />
+            </Property>
+            <Property label="Assignees">
+              <AssigneesField task={task} />
+            </Property>
+            <Property label="Labels">
+              <LabelsField task={task} />
             </Property>
           </dl>
         </div>
@@ -286,3 +297,83 @@ function DueDateField({
     </div>
   )
 }
+
+function AssigneesField({ task }: { task: Task }) {
+  const { members, memberById } = useLookups()
+  const { toggle } = useToggleRelation('assignee')
+  const createMember = useCreateMember()
+  const assigned = task.assignee_ids.flatMap((id) => memberById.get(id) ?? [])
+
+  return (
+    <MultiSelect
+      trigger={
+        <PickerTrigger label="Assignees" empty={assigned.length === 0} emptyText="Unassigned">
+          {assigned.map((m) => (
+            <span key={m.id} className="flex items-center gap-1.5">
+              <Avatar member={m} size="xs" />
+              <span className="text-[13px] text-zinc-800">{m.name}</span>
+            </span>
+          ))}
+        </PickerTrigger>
+      }
+      items={members.map((m) => ({ id: m.id, name: m.name, icon: <Avatar member={m} size="xs" /> }))}
+      selected={task.assignee_ids}
+      onToggle={(id) => toggle(task, id)}
+      // New teammates are added to the team and assigned in one step.
+      onCreate={(name) => toggle(task, createMember.create(name).id)}
+      createNoun="teammate"
+      placeholder="Assign to…"
+      emptyText="Type a name to add a teammate"
+    />
+  )
+}
+
+function LabelsField({ task }: { task: Task }) {
+  const { labels, labelById } = useLookups()
+  const { toggle } = useToggleRelation('label')
+  const createLabel = useCreateLabel()
+  const applied = task.label_ids.flatMap((id) => labelById.get(id) ?? [])
+
+  return (
+    <MultiSelect
+      trigger={
+        <PickerTrigger label="Labels" empty={applied.length === 0} emptyText="Add labels">
+          {applied.map((l) => (
+            <LabelChip key={l.id} label={l} />
+          ))}
+        </PickerTrigger>
+      }
+      items={labels.map((l) => ({ id: l.id, name: l.name, icon: <ColorDot color={l.color} /> }))}
+      selected={task.label_ids}
+      onToggle={(id) => toggle(task, id)}
+      onCreate={(name) => toggle(task, createLabel.create(name).id)}
+      createNoun="label"
+      placeholder="Add label…"
+      emptyText="Type to create a label"
+    />
+  )
+}
+
+const PickerTrigger = forwardRef<
+  HTMLButtonElement,
+  ComponentProps<'button'> & { label: string; empty: boolean; emptyText: string }
+>(function PickerTrigger({ label, empty, emptyText, children, ...props }, ref) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      aria-label={label}
+      className="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 py-1 text-left transition-colors outline-none hover:bg-zinc-100 focus-visible:ring-2 focus-visible:ring-indigo-500/40 data-[state=open]:bg-zinc-100"
+      {...props}
+    >
+      {empty ? (
+        <span className="flex items-center gap-1.5 text-[13px] text-zinc-400">
+          <Plus className="size-3.5" />
+          {emptyText}
+        </span>
+      ) : (
+        children
+      )}
+    </button>
+  )
+})

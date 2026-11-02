@@ -16,6 +16,7 @@ import {
   type UniqueIdentifier,
 } from '@dnd-kit/core'
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { toast } from 'sonner'
 import { endOfColumnPosition, useCreateTask, useNewTaskFactory, useUpdateTask } from '../../hooks/useTasks'
 import { positionBetween } from '../../lib/position'
 import { STATUSES, STATUS_LABELS, type Task, type TaskStatus } from '../../lib/types'
@@ -43,7 +44,16 @@ function findColumn(id: UniqueIdentifier, cols: Columns): TaskStatus | undefined
  */
 type DragState = { cols: Columns; base: Columns }
 
-export function Board({ tasks, onOpenTask }: { tasks: Task[]; onOpenTask: (id: string) => void }) {
+type BoardProps = {
+  /** Tasks to show (after filters). */
+  tasks: Task[]
+  /** Every task, for computing positions of new cards. */
+  allTasks: Task[]
+  filtering: boolean
+  onOpenTask: (id: string) => void
+}
+
+export function Board({ tasks, allTasks, filtering, onOpenTask }: BoardProps) {
   const { update } = useUpdateTask()
   const createTask = useCreateTask()
   const makeTask = useNewTaskFactory()
@@ -132,7 +142,8 @@ export function Board({ tasks, onOpenTask }: { tasks: Task[]; onOpenTask: (id: s
   }
 
   function onQuickAdd(status: TaskStatus, title: string) {
-    createTask.mutate(makeTask({ title, status, position: endOfColumnPosition(tasks, status) }))
+    createTask.mutate(makeTask({ title, status, position: endOfColumnPosition(allTasks, status) }))
+    if (filtering) toast('Task created', { description: 'It may be hidden by your current filters.' })
   }
 
   const announcements: Announcements = {
@@ -167,6 +178,7 @@ export function Board({ tasks, onOpenTask }: { tasks: Task[]; onOpenTask: (id: s
             dragging={activeId !== null}
             onQuickAdd={onQuickAdd}
             onOpenTask={onOpenTask}
+            filtering={filtering}
           />
         ))}
       </div>

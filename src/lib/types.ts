@@ -24,7 +24,13 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
 export type Task = Omit<Tables<'tasks'>, 'status' | 'priority'> & {
   status: TaskStatus
   priority: TaskPriority
+  /** From the task_assignees / task_labels join tables. */
+  assignee_ids: string[]
+  label_ids: string[]
 }
+
+export type Member = Tables<'team_members'>
+export type Label = Tables<'labels'>
 
 export type NewTask = {
   title: string
@@ -32,6 +38,8 @@ export type NewTask = {
   status?: TaskStatus
   priority?: TaskPriority
   due_date?: string | null
+  assignee_ids?: string[]
+  label_ids?: string[]
 }
 
 export type TaskPatch = Partial<
