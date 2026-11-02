@@ -59,7 +59,7 @@ export const TaskCardView = memo(function TaskCardView({ task, overlay }: CardPr
   )
 })
 
-export function SortableTaskCard({ task }: { task: Task }) {
+export function SortableTaskCard({ task, onOpen }: { task: Task; onOpen: (id: string) => void }) {
   const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
     id: task.id,
     data: { type: 'task', status: task.status },
@@ -76,6 +76,17 @@ export function SortableTaskCard({ task }: { task: Task }) {
       )}
       {...attributes}
       {...listeners}
+      // Mouse drags need 6px of movement, so a plain click still lands here.
+      onClick={() => onOpen(task.id)}
+      onKeyDown={(e) => {
+        // Enter opens; Space is left to the keyboard sensor for picking the card up.
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          onOpen(task.id)
+          return
+        }
+        listeners?.onKeyDown?.(e)
+      }}
       aria-label={`Task: ${task.title}`}
     >
       <TaskCardView task={task} />

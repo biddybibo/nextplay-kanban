@@ -5,6 +5,8 @@ import { Board } from './components/board/Board'
 import { BoardSkeleton } from './components/board/BoardSkeleton'
 import { CreateTaskDialog } from './components/CreateTaskDialog'
 import { Header } from './components/Header'
+import { TaskPanel } from './components/panel/TaskPanel'
+import { useTaskParam } from './hooks/useTaskParam'
 import { useTasks } from './hooks/useTasks'
 
 export default function App() {
@@ -36,6 +38,9 @@ export default function App() {
 function Workspace() {
   const { data: tasks, isPending, error, refetch, isRefetching } = useTasks()
   const [creating, setCreating] = useState(false)
+  const [openTaskId, setOpenTaskId] = useTaskParam()
+  // Undefined while loading, or if the task was deleted / the URL is stale.
+  const openTask = openTaskId ? tasks?.find((t) => t.id === openTaskId) : undefined
 
   // "C" opens the composer, unless the user is typing somewhere.
   useEffect(() => {
@@ -43,6 +48,7 @@ function Workspace() {
       if (e.key !== 'c' || e.metaKey || e.ctrlKey || e.altKey) return
       const el = e.target as HTMLElement
       if (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return
+      if (document.querySelector('[role="dialog"]')) return
       e.preventDefault()
       setCreating(true)
     }
@@ -76,11 +82,12 @@ function Workspace() {
             {error.message}
           </FullScreenMessage>
         ) : (
-          <Board tasks={tasks} />
+          <Board tasks={tasks} onOpenTask={setOpenTaskId} />
         )}
       </main>
 
       <CreateTaskDialog open={creating} onOpenChange={setCreating} tasks={tasks ?? []} />
+      <TaskPanel task={openTask} onClose={() => setOpenTaskId(null)} />
     </div>
   )
 }

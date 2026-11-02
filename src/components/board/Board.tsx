@@ -43,7 +43,7 @@ function findColumn(id: UniqueIdentifier, cols: Columns): TaskStatus | undefined
  */
 type DragState = { cols: Columns; base: Columns }
 
-export function Board({ tasks }: { tasks: Task[] }) {
+export function Board({ tasks, onOpenTask }: { tasks: Task[]; onOpenTask: (id: string) => void }) {
   const { update } = useUpdateTask()
   const createTask = useCreateTask()
   const makeTask = useNewTaskFactory()
@@ -61,7 +61,11 @@ export function Board({ tasks }: { tasks: Task[] }) {
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     // Long-press on touch so the board can still be scrolled with a finger.
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      // Enter is reserved for opening a card; Space picks it up.
+      keyboardCodes: { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] },
+    }),
   )
 
   function onDragStart({ active }: DragStartEvent) {
@@ -162,6 +166,7 @@ export function Board({ tasks }: { tasks: Task[] }) {
             tasks={columns[status].map((id) => byId.get(id)).filter((t): t is Task => !!t)}
             dragging={activeId !== null}
             onQuickAdd={onQuickAdd}
+            onOpenTask={onOpenTask}
           />
         ))}
       </div>

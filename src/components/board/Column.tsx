@@ -20,9 +20,10 @@ type ColumnProps = {
   /** True while any card is being dragged; empty columns turn into drop targets. */
   dragging: boolean
   onQuickAdd: (status: TaskStatus, title: string) => void
+  onOpenTask: (id: string) => void
 }
 
-export function Column({ status, tasks, dragging, onQuickAdd }: ColumnProps) {
+export function Column({ status, tasks, dragging, onQuickAdd, onOpenTask }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status, data: { type: 'column', status } })
   const [adding, setAdding] = useState(false)
 
@@ -53,7 +54,7 @@ export function Column({ status, tasks, dragging, onQuickAdd }: ColumnProps) {
       <div ref={setNodeRef} className="scroll-thin flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} />
+            <SortableTaskCard key={task.id} task={task} onOpen={onOpenTask} />
           ))}
         </SortableContext>
 

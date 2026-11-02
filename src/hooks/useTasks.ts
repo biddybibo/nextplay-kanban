@@ -108,6 +108,8 @@ export function useUpdateTask() {
     },
     onSuccess: (task) => {
       qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === task.id ? task : t)))
+      // A trigger may have logged this change; refresh the task's timeline.
+      void qc.invalidateQueries({ queryKey: ['activity', task.id] })
     },
     onError: (err, { previous }) => {
       // Roll back only this task so concurrent edits to other cards survive.
