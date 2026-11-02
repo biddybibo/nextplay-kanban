@@ -1,10 +1,16 @@
+import { useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { useUser } from '../auth/authContext'
 import { positionBetween } from '../lib/position'
 import { supabase } from '../lib/supabase'
 import type { NewTask, Task, TaskPatch } from '../lib/types'
 
 const tasksKey = (userId: string) => ['tasks', userId] as const
+
+// Task writes run one at a time, in order. Otherwise an edit made while a
+// card's insert is still in flight could reach the DB before the row exists.
+const writeScope = { id: 'task-writes' }
 
 async function fetchTasks(): Promise<Task[]> {
   // RLS already limits rows to the signed-in user; no user_id filter needed.
@@ -27,17 +33,43 @@ export function useCreateTask() {
   const key = tasksKey(user.id)
 
   return useMutation({
-    mutationFn: async (input: NewTask & { position: number }) => {
-      const { data, error } = await supabase.from('tasks').insert(input).select().single()
+    scope: writeScope,
+    mutationFn: async (input: Task) => {
+      const { id, title, description, status, priority, due_date, position } = input
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({ id, title, description, status, priority, due_date, position })
+        .select()
+        .single()
       if (error) throw error
       return data as Task
     },
-    onMutate: async (input) => {
+    onMutate: async (task) => {
       await qc.cancelQueries({ queryKey: key })
-      const previous = qc.getQueryData<Task[]>(key)
+      qc.setQueryData<Task[]>(key, (old = []) => [...old, task])
+    },
+    onSuccess: (task) => {
+      qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === task.id ? task : t)))
+    },
+    onError: (err, task) => {
+      qc.setQueryData<Task[]>(key, (old = []) => old.filter((t) => t.id !== task.id))
+      toast.error("Couldn't create task", { description: err.message })
+    },
+  })
+}
+
+/**
+ * Returns a function that builds a full optimistic Task from user input.
+ * The id is generated client-side, so the card is immediately usable
+ * (draggable, editable) before the insert round-trips.
+ */
+export function useNewTaskFactory() {
+  const user = useUser()
+  return useCallback(
+    (input: NewTask & { position: number }): Task => {
       const now = new Date().toISOString()
-      const optimistic: Task = {
-        id: `optimistic-${crypto.randomUUID()}`,
+      return {
+        id: crypto.randomUUID(),
         title: input.title,
         description: input.description ?? null,
         status: input.status ?? 'todo',
@@ -48,22 +80,17 @@ export function useCreateTask() {
         created_at: now,
         updated_at: now,
       }
-      qc.setQueryData<Task[]>(key, (old = []) => [...old, optimistic])
-      return { previous, optimisticId: optimistic.id }
     },
-    onSuccess: (task, _input, ctx) => {
-      qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === ctx.optimisticId ? task : t)))
-    },
-    onError: (_err, _input, ctx) => {
-      if (ctx) qc.setQueryData(key, ctx.previous)
-    },
-  })
+    [user.id],
+  )
 }
 
 /** Position that puts a new task at the bottom of `status`'s column. */
 export function endOfColumnPosition(tasks: Task[], status: Task['status']): number {
-  const inColumn = tasks.filter((t) => t.status === status)
-  const last = inColumn.reduce<number | undefined>((max, t) => (max === undefined || t.position > max ? t.position : max), undefined)
+  let last: number | undefined
+  for (const t of tasks) {
+    if (t.status === status && (last === undefined || t.position > last)) last = t.position
+  }
   return positionBetween(last, undefined)
 }
 
@@ -72,25 +99,39 @@ export function useUpdateTask() {
   const qc = useQueryClient()
   const key = tasksKey(user.id)
 
-  return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: TaskPatch }) => {
+  const mutation = useMutation({
+    scope: writeScope,
+    mutationFn: async ({ id, patch }: { id: string; patch: TaskPatch; previous: Task }) => {
       const { data, error } = await supabase.from('tasks').update(patch).eq('id', id).select().single()
       if (error) throw error
       return data as Task
     },
-    onMutate: async ({ id, patch }) => {
-      await qc.cancelQueries({ queryKey: key })
-      const previous = qc.getQueryData<Task[]>(key)
-      qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === id ? { ...t, ...patch } : t)))
-      return { previous }
-    },
     onSuccess: (task) => {
       qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === task.id ? task : t)))
     },
-    onError: (_err, _vars, ctx) => {
-      if (ctx) qc.setQueryData(key, ctx.previous)
+    onError: (err, { previous }) => {
+      // Roll back only this task so concurrent edits to other cards survive.
+      qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === previous.id ? previous : t)))
+      toast.error("Couldn't save changes", { description: err.message })
     },
   })
+
+  const { mutate } = mutation
+  // The cache is patched synchronously (not in onMutate, which runs a tick
+  // later) so a dropped card never flashes back to its old column.
+  const update = useCallback(
+    (id: string, patch: TaskPatch) => {
+      const k = tasksKey(user.id)
+      const previous = qc.getQueryData<Task[]>(k)?.find((t) => t.id === id)
+      if (!previous) return
+      void qc.cancelQueries({ queryKey: k })
+      qc.setQueryData<Task[]>(k, (old = []) => old.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+      mutate({ id, patch, previous })
+    },
+    [qc, mutate, user.id],
+  )
+
+  return { ...mutation, update }
 }
 
 export function useDeleteTask() {
@@ -99,18 +140,18 @@ export function useDeleteTask() {
   const key = tasksKey(user.id)
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tasks').delete().eq('id', id)
+    scope: writeScope,
+    mutationFn: async (task: Task) => {
+      const { error } = await supabase.from('tasks').delete().eq('id', task.id)
       if (error) throw error
     },
-    onMutate: async (id) => {
+    onMutate: async (task) => {
       await qc.cancelQueries({ queryKey: key })
-      const previous = qc.getQueryData<Task[]>(key)
-      qc.setQueryData<Task[]>(key, (old = []) => old.filter((t) => t.id !== id))
-      return { previous }
+      qc.setQueryData<Task[]>(key, (old = []) => old.filter((t) => t.id !== task.id))
     },
-    onError: (_err, _id, ctx) => {
-      if (ctx) qc.setQueryData(key, ctx.previous)
+    onError: (err, task) => {
+      qc.setQueryData<Task[]>(key, (old = []) => [...old, task])
+      toast.error("Couldn't delete task", { description: err.message })
     },
   })
 }

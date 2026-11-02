@@ -2,6 +2,28 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Status accents, shared by column headers, icons and the create dialog. */
+  --color-status-todo: #94a3b8;
+  --color-status-progress: #f59e0b;
+  --color-status-review: #8b5cf6;
+  --color-status-done: #10b981;
+
+  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.04), 0 1px 1px rgb(24 24 27 / 0.03);
+  --shadow-card-hover: 0 4px 12px -2px rgb(24 24 27 / 0.08), 0 2px 4px -2px rgb(24 24 27 / 0.05);
+  --shadow-lifted: 0 18px 36px -8px rgb(24 24 27 / 0.22), 0 6px 12px -4px rgb(24 24 27 / 0.1);
+
+  --animate-fade-in: fade-in 150ms ease-out;
+  --animate-dialog-in: dialog-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes dialog-in {
+    from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
 }
 
 html,
@@ -12,4 +34,11 @@ body,
 
 body {
   @apply bg-zinc-50 text-zinc-900 antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+/* Thin, unobtrusive scrollbars for the board and columns. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(212 212 216) transparent;
 }

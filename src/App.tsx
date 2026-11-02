@@ -1,106 +1,121 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { CloudOff, Loader2, Sparkles } from 'lucide-react'
 import { useAuth } from './auth/authContext'
-import { endOfColumnPosition, useCreateTask, useDeleteTask, useTasks, useUpdateTask } from './hooks/useTasks'
-import { STATUSES, STATUS_LABELS, type TaskStatus } from './lib/types'
-
-// Temporary Phase 1 screen: proves guest auth + CRUD through RLS.
-// Replaced by the real board in Phase 2.
+import { Board } from './components/board/Board'
+import { BoardSkeleton } from './components/board/BoardSkeleton'
+import { CreateTaskDialog } from './components/CreateTaskDialog'
+import { Header } from './components/Header'
+import { useTasks } from './hooks/useTasks'
 
 export default function App() {
   const auth = useAuth()
 
   if (auth.status === 'loading') {
-    return <Centered>Starting your guest session…</Centered>
-  }
-  if (auth.status === 'error') {
     return (
-      <Centered>
-        <p className="font-medium text-red-600">Couldn't start a guest session</p>
-        <p className="mt-1 text-sm text-zinc-500">{auth.error.message}</p>
-        <button onClick={auth.retry} className="mt-4 rounded-md bg-zinc-900 px-3 py-1.5 text-sm text-white">
-          Try again
-        </button>
-      </Centered>
+      <FullScreenMessage icon={<Loader2 className="size-5 animate-spin text-indigo-500" />} title="Setting up your board…">
+        Creating a private guest workspace.
+      </FullScreenMessage>
     )
   }
 
-  return <DataCheck userId={auth.user.id} />
-}
-
-function DataCheck({ userId }: { userId: string }) {
-  const { data: tasks = [], isPending, error, refetch } = useTasks()
-  const createTask = useCreateTask()
-  const updateTask = useUpdateTask()
-  const deleteTask = useDeleteTask()
-  const [title, setTitle] = useState('')
-
-  function onSubmit(e: FormEvent) {
-    e.preventDefault()
-    const trimmed = title.trim()
-    if (!trimmed) return
-    createTask.mutate({ title: trimmed, position: endOfColumnPosition(tasks, 'todo') })
-    setTitle('')
+  if (auth.status === 'error') {
+    return (
+      <FullScreenMessage
+        icon={<CloudOff className="size-5 text-red-500" />}
+        title="Couldn't start your session"
+        action={<RetryButton onClick={auth.retry} />}
+      >
+        {auth.error.message}
+      </FullScreenMessage>
+    )
   }
 
-  const mutationError = createTask.error ?? updateTask.error ?? deleteTask.error
+  return <Workspace />
+}
+
+function Workspace() {
+  const { data: tasks, isPending, error, refetch, isRefetching } = useTasks()
+  const [creating, setCreating] = useState(false)
+
+  // "C" opens the composer, unless the user is typing somewhere.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'c' || e.metaKey || e.ctrlKey || e.altKey) return
+      const el = e.target as HTMLElement
+      if (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return
+      e.preventDefault()
+      setCreating(true)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   return (
-    <div className="mx-auto max-w-2xl p-8">
-      <h1 className="text-xl font-semibold">Data layer check</h1>
-      <p className="mt-1 font-mono text-xs text-zinc-500">guest user: {userId}</p>
+    <div className="flex h-full flex-col">
+      <Header onNewTask={() => setCreating(true)} taskCount={tasks?.length} />
 
-      <form onSubmit={onSubmit} className="mt-6 flex gap-2">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="New task title"
-          className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm"
-        />
-        <button className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm text-white">Add</button>
-      </form>
-
-      {mutationError && <p className="mt-3 text-sm text-red-600">{mutationError.message}</p>}
-
-      {isPending ? (
-        <p className="mt-6 text-sm text-zinc-500">Loading tasks…</p>
-      ) : error ? (
-        <p className="mt-6 text-sm text-red-600">
-          {error.message}{' '}
-          <button onClick={() => refetch()} className="underline">
-            Retry
-          </button>
-        </p>
-      ) : tasks.length === 0 ? (
-        <p className="mt-6 text-sm text-zinc-500">No tasks yet.</p>
-      ) : (
-        <ul className="mt-6 divide-y divide-zinc-200 rounded-md border border-zinc-200 bg-white">
-          {tasks.map((task) => (
-            <li key={task.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-              <span className="flex-1">{task.title}</span>
-              <select
-                value={task.status}
-                onChange={(e) =>
-                  updateTask.mutate({ id: task.id, patch: { status: e.target.value as TaskStatus } })
-                }
-                className="rounded border border-zinc-300 px-1 py-0.5"
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-              <button onClick={() => deleteTask.mutate(task.id)} className="text-zinc-400 hover:text-red-600">
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
+      {tasks && tasks.length === 0 && (
+        <div className="mx-4 mb-3 flex items-center gap-2.5 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-[13px] text-indigo-900 sm:mx-6">
+          <Sparkles className="size-4 shrink-0 text-indigo-500" />
+          <p>
+            Your board is empty. Add your first task with <span className="font-medium">New task</span>, or press{' '}
+            <kbd className="rounded border border-indigo-200 bg-white px-1 font-sans text-[11px] font-medium">C</kbd>.
+          </p>
+        </div>
       )}
+
+      <main className="min-h-0 flex-1">
+        {isPending ? (
+          <BoardSkeleton />
+        ) : error ? (
+          <FullScreenMessage
+            icon={<CloudOff className="size-5 text-red-500" />}
+            title="Couldn't load your tasks"
+            action={<RetryButton onClick={() => refetch()} loading={isRefetching} />}
+          >
+            {error.message}
+          </FullScreenMessage>
+        ) : (
+          <Board tasks={tasks} />
+        )}
+      </main>
+
+      <CreateTaskDialog open={creating} onOpenChange={setCreating} tasks={tasks ?? []} />
     </div>
   )
 }
 
-function Centered({ children }: { children: React.ReactNode }) {
-  return <div className="flex h-full flex-col items-center justify-center p-8 text-center">{children}</div>
+function FullScreenMessage({
+  icon,
+  title,
+  children,
+  action,
+}: {
+  icon: ReactNode
+  title: string
+  children?: ReactNode
+  action?: ReactNode
+}) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+      <div className="mb-4 grid size-10 place-items-center rounded-full bg-white shadow-card ring-1 ring-zinc-200">{icon}</div>
+      <p className="text-sm font-semibold text-zinc-900">{title}</p>
+      {children && <p className="mt-1 max-w-sm text-[13px] text-zinc-500">{children}</p>}
+      {action && <div className="mt-5">{action}</div>}
+    </div>
+  )
+}
+
+function RetryButton({ onClick, loading }: { onClick: () => void; loading?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3 text-[13px] font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 disabled:opacity-60"
+    >
+      {loading && <Loader2 className="size-3.5 animate-spin" />}
+      Try again
+    </button>
+  )
 }

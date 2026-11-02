@@ -6,6 +6,12 @@ export type TaskStatus = (typeof STATUSES)[number]
 export const PRIORITIES = ['low', 'normal', 'high'] as const
 export type TaskPriority = (typeof PRIORITIES)[number]
 
+export const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: 'Low',
+  normal: 'Normal',
+  high: 'High',
+}
+
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'To Do',
   in_progress: 'In Progress',
